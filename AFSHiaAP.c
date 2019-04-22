@@ -10,13 +10,25 @@
 
 static const char *dirpath = "/home";
 
+static int xmp_getattr(const char *path, struct stat *stbuf){
+    int res;
+  	char fpath[1000];
+  	sprintf(fpath,"%s%s",dirpath,path);
+  	res = lstat(fpath, stbuf);
+
+  	if (res == -1)
+  		return -errno;
+
+  	return 0;
+}
+
 static struct fuse_operations xmp_oper = {
   .getattr = xmp_getattr,
   .readdir = xmp_readdir,
   .read = xmp_read,
 };
 
-int int main(int argc, char const *argv[]) {
+int main(int argc, char const *argv[]) {
   umask(0);
   return fuse_main(argc, argv, &xmp_oper, NULL);
 }
