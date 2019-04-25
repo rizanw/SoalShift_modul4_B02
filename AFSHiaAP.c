@@ -142,13 +142,13 @@ void DecryptDir(){
   closedir(dp);
 }
 
-// int getIndex(char c){
-// 	for(int i = 0;i < strlen(wordlist);i++){
-// 		if(c == wordlist[i])
-// 			return i;
-// 	}
-//   return -1;
-// }
+int getIndex(char c){
+	for(int i = 0;i < strlen(wordlist);i++){
+		if(c == wordlist[i])
+			return i;
+	}
+  return -1;
+}
 
 char Encrypt(char *s){
 		int idx;
