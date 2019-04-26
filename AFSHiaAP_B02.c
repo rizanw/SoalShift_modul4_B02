@@ -323,15 +323,19 @@ static int xmp_chmod(const char *path, mode_t mode){
 	sprintf(fpath,"%s%s",dirpath,enpath);
 
 	printf("%s | CHMOD >>>>>>>>>>>> %s\n", fpath, path);
-	// fpath[len-1] == 'k' && fpath[len-2] == 'a' && fpath[len-3] == 'b' && fpath[len-4] == '.'
-	if(strstr(fpath, ytFolder) == 0 ){
-		// soal4v = 1;
-		printf("JANGAN UBAH FOLDER YUTUB BOY!!\n");
-		pid_t fk;
-		fk = fork();
-		if(fk == 0){
-			char *argv[4] = {"zenity", "--warning", "--text=File ekstensi iz1 tidak boleh diubah permissionnya.", NULL};
-			execv("/usr/bin/zenity", argv);
+	int len = strlen(fpath);
+	// fpath[len-1] == '1' && fpath[len-2] == 'z' && fpath[len-3] == 'i' && fpath[len-4] == '.'
+	if(strstr(fpath, ytFolder) == 0){
+	printf("JANGAN UBAH FOLDER YUTUB BOY!!\n");
+		printf("%d %d %d %d\n", fpath[len-1], fpath[len-2], fpath[len-3], fpath[len-4]);
+		if(fpath[len-1] == 37 && fpath[len-2] == 83 && fpath[len-3] == 91 && fpath[len-4] == 96){
+			// soal4v = 1;
+			pid_t fk;
+			fk = fork();
+			if(fk == 0){
+				char *argv[4] = {"zenity", "--warning", "--text=File ekstensi iz1 tidak boleh diubah permissionnya.", NULL};
+				execv("/usr/bin/zenity", argv);
+			}
 		}
 	}
 
@@ -463,6 +467,8 @@ static int xmp_write(const char *path, const char *buf, size_t size,
 	sprintf(BakPath, "%s/%s", dirpath, BakFolder);
 	mkdir(BakPath, 0750);
 
+
+
 	(void) fi;
 	fd = open(fpath, O_WRONLY);
 	if (fd == -1)
@@ -500,7 +506,7 @@ static int xmp_create(const char* path, mode_t mode, struct fuse_file_info* fi) 
 	printf("7777777777777 CREATEFILE DISINI %s\n", fpath);
 	printf(">>>>>>>>>>>>>>>>>> %s >>> %s >>> %d\n", path, ytFolder, mode);
 	if(strstr(path, ytFolder) != NULL){
-		mode = 0777;
+		mode = 0640;
 		printf("FILEBERHASIL: %s -m %d\n", path, mode );
 		// sprintf(enpath, "%s.iz1", path);
 		// strcat(enpath, ".iz1");
