@@ -21,9 +21,11 @@
 #include <pwd.h>
 #include <grp.h>
 #include <string.h>
+#include <time.h>
 #ifdef HAVE_SETXATTR
 #include <sys/xattr.h>
 #endif
+// #include "pthread.h"
 
 static const char *dirpath = "/home/rizk/shift4";
 static const char worldlist[] = "qE1~ YMUR2\"`hNIdPzi%^t@(Ao:=CQ,nx4S[7mHFye#aT6+v)DfKL$r?bkOGB>}!9_wV']jcp5JZ&Xl|\\8s;g<{3.u*W-0";
@@ -42,6 +44,7 @@ static int xmp_getattr(const char *path, struct stat *stbuf){
 	char fpath[LenPath], enpath[LenPath];
 
 	strcpy(enpath, path);
+
 	Encrypt(enpath);
 	sprintf(fpath,"%s%s",dirpath,enpath);
 
@@ -109,14 +112,30 @@ static int xmp_readdir(const char *path, void *buf, fuse_fill_dir_t filler,
 		st.st_ino = de->d_ino;
 		st.st_mode = de->d_type << 12;
 
-		if(stat(fpath, &fstat) == 0){
-			struct passwd *euid = getpwuid(fstat.st_uid);
-			struct group *egid = getgrgid(fstat.st_gid);
-			printf("{%s} >>>>>>>stat: owner %s, group %s\n", de->d_name, euid->pw_name, egid->gr_name);
-			if(strcmp(egid->gr_name, blGroup) == 0){
-				if(strcmp(euid->pw_name, blOwner1) == 0 || strcmp(euid->pw_name, blOwner2) == 0){
-					printf("'%s' HAPUS FILE INI CEPATTT!!!!!!!!!!!!!!\n", de->d_name);
-				}
+		char fname[LenPath];
+		sprintf(fname, "%s/%s", fpath, de->d_name);
+		stat(fname, &fstat);
+
+		struct passwd *euid = getpwuid(fstat.st_uid);
+		struct group *egid = getgrgid(fstat.st_gid);
+		struct tm *fntm = localtime(&fstat.st_atime);
+
+		printf(">>>>>>>>>>>>>>>fname %s - %s; owner: %s; gr: %s \n", fname, de->d_name, euid->pw_name, egid->gr_name);
+		printf("{%s} >>>>>>>stat: owner %s, group %s\n", de->d_name, euid->pw_name, egid->gr_name);
+		if(strcmp(egid->gr_name, blGroup) == 0){
+			if(strcmp(euid->pw_name, blOwner1) == 0 || strcmp(euid->pw_name, blOwner2) == 0){
+				printf("'%s' HAPUS FILE INI CEPATTT!!!!!!!!!!!!!!\n", de->d_name);
+				FILE *nf;
+				char scfile[] = "filemiris.txt";
+				Encrypt(scfile);
+				char scpath[LenPath];
+				sprintf(scpath, "%s/%s", dirpath, scfile);
+				char wordtext[LenPath*2];
+				sprintf(wordtext, "%s || %s - %s || %02d-%02d-%04d %02d:%02d:%02d\n", fname, euid->pw_name, egid->gr_name, fntm->tm_mon, fntm->tm_mday, fntm->tm_year + 1900, fntm->tm_hour, fntm->tm_min, fntm->tm_sec);
+				nf = fopen(scpath, "a");
+				fputs(wordtext, nf);
+				fclose(nf);
+				remove(fname);
 			}
 		}
 
@@ -389,6 +408,8 @@ static int xmp_write(const char *path, const char *buf, size_t size,
 	Encrypt(enpath);
 	sprintf(fpath,"%s%s",dirpath,enpath);
 
+	printf("Masuksiniga?\n" );
+
 	(void) fi;
 	fd = open(fpath, O_WRONLY);
 	if (fd == -1)
@@ -427,8 +448,9 @@ static int xmp_create(const char* path, mode_t mode, struct fuse_file_info* fi) 
 	printf(">>>>>>>>>>>>>>>>>> %s >>> %s >>> %d\n", path, ytFolder, mode);
 	if(strstr(path, ytFolder) != NULL){
 		mode = 0640;
-		strcat(enpath, ".iz1");
 		printf("FILEBERHASIL: %s -m %d\n", path, mode );
+		// sprintf(enpath, "%s.iz1", path);
+		strcat(enpath, ".iz1");
 	}
 
 	Encrypt(enpath);
@@ -440,7 +462,6 @@ static int xmp_create(const char* path, mode_t mode, struct fuse_file_info* fi) 
 	res = creat(fpath, mode);
 	if(res == -1)
 		return -errno;
-
 	close(res);
 	return 0;
 }
@@ -450,6 +471,14 @@ static int xmp_release(const char *path, struct fuse_file_info *fi)
 {
 	/* Just a stub.	 This method is optional and can safely be left
 	   unimplemented */
+	// char fpath[LenPath];
+	//
+	// if(strstr(path, ytFolder) != NULL){
+ 	// 	printf("FILEBERHASIL di RELEASE: %s\n", path );
+ 	// 	sprintf(fpath, "%s.iz1", path);
+ 	// 	printf("FILEBERHASIL di RELEASE: %s\n", fpath );
+ 	// }else
+	// 	strcpy(fpath, path);
 
 	(void) path;
 	(void) fi;
