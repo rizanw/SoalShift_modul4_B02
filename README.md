@@ -273,7 +273,7 @@ if(strstr(path, ytFolder) != NULL){
 
 ##### Note :
 
-Menggabungkan string `enpath` dengan string `.izi` menggunakan fungsi `strcat`
+Menggabungkan string `enpath` dengan string `.iz1` menggunakan fungsi `strcat`
 
 ```sh
 strcat(enpath, ".iz1");
