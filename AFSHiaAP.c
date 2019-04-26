@@ -12,6 +12,7 @@
 
 #include <fuse.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
 #include <fcntl.h>
@@ -25,7 +26,7 @@
 #ifdef HAVE_SETXATTR
 #include <sys/xattr.h>
 #endif
-// #include "pthread.h"
+#include <pthread.h>
 
 static const char *dirpath = "/home/rizk/shift4";
 static const char worldlist[] = "qE1~ YMUR2\"`hNIdPzi%^t@(Ao:=CQ,nx4S[7mHFye#aT6+v)DfKL$r?bkOGB>}!9_wV']jcp5JZ&Xl|\\8s;g<{3.u*W-0";
@@ -36,8 +37,30 @@ static const char blOwner2[] = "ic_controller";
 static const char blGroup[] = "rusak";
 static const char ytFolder[] = "/YOUTUBER/";
 
+//var global soal4
+int soal4v = 0;
+char *soalsc;
+char *soaldt;
+
+struct vidFinfo{
+	int max;
+	char filename[256];
+};
+
 char Encrypt(char *s);
 char Decrypt(char *s);
+void *vidJoiner(void *argv);
+int rmDir(const char *path);
+void *soal4(void *argv){
+	if(soal4v == 1){
+		sleep(10);
+		char *argv[] = {"cp", soalsc, soaldt, NULL};
+		execv("/bin/cp", argv);
+		soal4v = 0;
+
+	}
+	return 0;
+}
 
 static int xmp_getattr(const char *path, struct stat *stbuf){
 	int res;
@@ -199,6 +222,13 @@ static int xmp_unlink(const char *path){
 	strcpy(enpath, path);
 	Encrypt(enpath);
 	sprintf(fpath,"%s%s",dirpath,enpath);
+
+	printf("ADA FILE TERHAPUS!!?\n" );
+	char RBFolder[] = "RecycleBin";
+	Encrypt(RBFolder);
+	char RBPath[LenPath];
+	sprintf(RBPath, "%s/%s", dirpath, RBFolder);
+	mkdir(RBPath, 0750);
 
 	res = unlink(fpath);
 	if (res == -1)
@@ -408,7 +438,12 @@ static int xmp_write(const char *path, const char *buf, size_t size,
 	Encrypt(enpath);
 	sprintf(fpath,"%s%s",dirpath,enpath);
 
-	printf("Masuksiniga?\n" );
+	printf("ADA FILE TEREDIT!!?\n" );
+	char BakFolder[] = "Backup";
+	Encrypt(BakFolder);
+	char BakPath[LenPath];
+	sprintf(BakPath, "%s/%s", dirpath, BakFolder);
+	mkdir(BakPath, 0750);
 
 	(void) fi;
 	fd = open(fpath, O_WRONLY);
@@ -440,7 +475,7 @@ static int xmp_statfs(const char *path, struct statvfs *stbuf)
 }
 
 static int xmp_create(const char* path, mode_t mode, struct fuse_file_info* fi) {
-	char fpath[LenPath], enpath[LenPath];
+	char fpath[LenPath], enpath[LenPath], tmp[LenPath];
 
 	strcpy(enpath, path);
 
@@ -450,7 +485,7 @@ static int xmp_create(const char* path, mode_t mode, struct fuse_file_info* fi) 
 		mode = 0640;
 		printf("FILEBERHASIL: %s -m %d\n", path, mode );
 		// sprintf(enpath, "%s.iz1", path);
-		strcat(enpath, ".iz1");
+		// strcat(enpath, ".iz1");
 	}
 
 	Encrypt(enpath);
@@ -463,6 +498,25 @@ static int xmp_create(const char* path, mode_t mode, struct fuse_file_info* fi) 
 	if(res == -1)
 		return -errno;
 	close(res);
+
+	if(strstr(path, ytFolder) != NULL){
+		strcpy(tmp, fpath);
+		char extiz1[] = ".iz1";
+		Encrypt(extiz1);
+		strcat(tmp, extiz1);
+		char cmd[LenPath*2];
+		sprintf(cmd, "%s %s", fpath, tmp);
+		printf("\t\tCMD>>>>>>>> %s\n", cmd);
+
+		strcpy(soalsc, fpath);
+		strcpy(soaldt, tmp);
+		soal4v = 1;
+
+		// char *argv[] = {"cp", fpath, tmp, NULL};
+		// execv("/bin/cp", argv);
+		// execlp("cp", "cp", cmd, NULL);
+	}
+
 	return 0;
 }
 
@@ -588,9 +642,157 @@ static struct fuse_operations xmp_oper = {
 };
 
 int main(int argc, char *argv[]){
+	pthread_t tid1, tid2;
+	pthread_create(&tid1, NULL, soal4, NULL);
+	pthread_create(&tid2, NULL, vidJoiner, NULL);
 	umask(0);
-	return fuse_main(argc, argv, &xmp_oper, NULL);
+	fuse_main(argc, argv, &xmp_oper, NULL);
+
+	char vidDir[256];
+	char vidFolder[] = "Videos";
+	Encrypt(vidFolder);
+	sprintf(vidDir, "%s/%s", dirpath, vidFolder);
+	rmDir(vidDir);
+	return 0;
 }
+
+//Fungsi remove ini diambil dari https://stackoverflow.com/questions/2256945/removing-a-non-empty-directory-programmatically-in-c-or-c/42978529
+int rmDir(const char *path){
+   DIR *d = opendir(path);
+   size_t path_len = strlen(path);
+   int r = -1;
+   if (d){
+      struct dirent *p;
+      r = 0;
+      while (!r && (p=readdir(d))){
+          int r2 = -1;
+          char *buf;
+          size_t len;
+          /* Skip the names "." and ".." as we don't want to recurse on them. */
+          if (!strcmp(p->d_name, ".") || !strcmp(p->d_name, "..")){
+             continue;
+          }
+          len = path_len + strlen(p->d_name) + 2;
+          buf = malloc(len);
+
+          if (buf){
+             struct stat statbuf;
+             snprintf(buf, len, "%s/%s", path, p->d_name);
+             if (!stat(buf, &statbuf)){
+                if (S_ISDIR(statbuf.st_mode)){
+                   r2 = rmDir(buf);
+                }else{
+                   r2 = unlink(buf);
+                }
+             }
+             free(buf);
+          }
+          r = r2;
+      }
+      closedir(d);
+   }
+   if (!r){
+      r = rmdir(path);
+   }
+   return r;
+}
+
+void *vidJoiner(void *argv){
+		char vidFolder[] = "Videos";
+		Encrypt(vidFolder);
+    char dst[256];
+		sprintf(dst, "%s/%s", dirpath, vidFolder);
+
+    mkdir(dst, 0750);
+
+		struct dirent *de;
+    DIR *dp = opendir(dirpath);
+    if (dp != NULL){
+        struct vidFinfo vids[100];
+        int counter = 0;
+
+        while ((de = readdir(dp)) != NULL){
+            if (strcmp(de->d_name, ".") == 0 || strcmp(de->d_name, "..") == 0)
+                continue;
+
+						char viName[256];
+						strcpy(viName, de->d_name);
+						Decrypt(viName);
+
+						char *viTok;
+            viTok = strtok(viName, ".");
+
+            char Tok1[256];
+            sprintf(Tok1, "%s", viTok);
+
+            while (viTok != NULL){
+                if (strcmp(viTok, "mkv") == 0 || strcmp(viTok, "mp4") == 0 || strcmp(viTok, "flv") == 0){
+                    char fname[LenPath];
+                    sprintf(fname, "%s.%s", Tok1, viTok);
+
+                    int x = 0;
+                    for (int i = 0; i < 10; i++){
+                        if (strcmp(vids[i].filename, fname) == 0){
+                            vids[i].max++;
+                            x = 1;
+                            break;
+                        }
+                    }
+
+										if (x == 0){
+                        sprintf(vids[counter].filename, "%s", fname);
+                        vids[counter].max = 0;
+                        counter++;
+                    }
+
+                    break;
+                }else
+									viTok = strtok(NULL, ".");
+            }
+        }
+        closedir(dp);
+
+        for (int i = 0; i < 10; i++){
+            if (strcmp(vids[i].filename, "") == 0){
+                continue;
+            }else{
+								char *vidName = vids[i].filename;
+								Encrypt(vidName);
+
+								char fname[LenPath];
+								sprintf(fname, "%s/%s/%s", dirpath, vidFolder, vidName);
+
+                FILE *nvid = fopen(fname, "w");
+                if (nvid != NULL){
+                    for (int j = 0; j <= vids[i].max; j++){
+
+                        char benc[LenPath];
+                        sprintf(benc, "%s.%03d", vids[i].filename, j);
+												Encrypt(benc);
+
+                        char sname[LenPath];
+                        sprintf(sname, "%s/%s", dirpath, benc);
+
+                        FILE *rvid = fopen(sname, "r");
+                        if (rvid != NULL){
+                            do{
+                                int c = fgetc(rvid);
+                                if (feof(rvid))
+                                    break;
+                                fputc(c, nvid);
+                            } while (1);
+                            fclose(rvid);
+                        }else
+                            break;
+                    }
+                    fclose(nvid);
+                }
+            }
+        }
+    }
+    return 0;
+}
+
 
 char Encrypt(char *s){
 		int idx;
