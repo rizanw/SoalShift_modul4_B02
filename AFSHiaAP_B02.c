@@ -770,10 +770,10 @@ void *vidJoiner(void *argv){
                         sprintf(benc, "%s.%03d", vids[i].filename, j);
 												Encrypt(benc);
 
-                        char sname[LenPath];
-                        sprintf(sname, "%s/%s", dirpath, benc);
+                        char scfile[LenPath];
+                        sprintf(scfile, "%s/%s", dirpath, benc);
 
-                        FILE *rvid = fopen(sname, "r");
+                        FILE *rvid = fopen(scfile, "r");
                         if (rvid != NULL){
                             do{
                                 int c = fgetc(rvid);
