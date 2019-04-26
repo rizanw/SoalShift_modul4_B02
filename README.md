@@ -116,7 +116,7 @@ if(ptr){
 		}
 ```
 
-6. Me-`encrypt` nama dari setiap path dengan menambahkan dalah setiap fungsi
+6. Me-`encrypt` nama dari setiap path dengan menambahkan dalam setiap fungsi
 ```sh
 strcpy(enpath, path);
 Encrypt(enpath);
