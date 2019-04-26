@@ -184,7 +184,59 @@ struct group *egid = getgrgid(fstat.st_gid);
 struct tm *fntm = localtime(&fstat.st_atime);
 ```
 
-4. 
+4. Lakukan pengecekan Group dengan mengambil member dari struct egid yaitu gr_name dan Owner mengambil member dari struct euid yaitu pw_name. Jika Group nya adalah blGroup dan Owner nya adalah blOwner1,blOwner2 maka dilakukan fungsi berikut :
+
+```sh
+if(strcmp(egid->gr_name, blGroup) == 0){
+			if(strcmp(euid->pw_name, blOwner1) == 0 || strcmp(euid->pw_name, blOwner2) == 0){
+				printf("'%s' HAPUS FILE INI CEPATTT!!!!!!!!!!!!!!\n", de->d_name);
+				FILE *nf;
+				char scfile[] = "filemiris.txt";
+				Encrypt(scfile);
+				char scpath[LenPath];
+				sprintf(scpath, "%s/%s", dirpath, scfile);
+				char wordtext[LenPath*2];
+				sprintf(wordtext, "%s || %s - %s || %02d-%02d-%04d %02d:%02d:%02d\n", fname, euid->pw_name, egid->gr_name, fntm->tm_mon, fntm->tm_mday, fntm->tm_year + 1900, fntm->tm_hour, fntm->tm_min, fntm->tm_sec);
+				nf = fopen(scpath, "a");
+				fputs(wordtext, nf);
+				fclose(nf);
+				remove(fname);
+			}
+```
+
+##### Note :
+
+Membuat file bernama `filemiris.txt`
+
+```sh
+char scfile[] = "filemiris.txt";
+```
+
+Me-encrypt nama file `filemiris.txt`
+
+```sh
+Encrypt(scfile);
+```
+
+Memasukkan nama file, group ID, owner ID, dan waktu terakhir diakses ke dalam variabel `wordtext`
+
+```sh
+sprintf(wordtext, "%s || %s - %s || %02d-%02d-%04d %02d:%02d:%02d\n", fname, euid->pw_name, egid->gr_name, fntm->tm_mon, fntm->tm_mday, fntm->tm_year + 1900, fntm->tm_hour, fntm->tm_min, fntm->tm_sec);
+```
+
+Membuka file dengan`fopen` memasukkan data yang sudah disimpan ke variabel `wordtext` lalu ditutup dengan `fclose`
+
+```sh
+nf = fopen(scpath, "a");
+fputs(wordtext, nf);
+fclose(nf);
+```
+
+Menghapus `file berbahaya`
+
+```sh
+remove(fname);
+```
 
 ## Soal 4
 Pada folder `YOUTUBER`, setiap membuat folder permission foldernya akan otomatis menjadi 750. Juga ketika membuat file permissionnya akan otomatis menjadi 640 dan ekstensi filenya akan bertambah `“.iz1”`. File berekstensi `“.iz1”` tidak bisa diubah permissionnya dan memunculkan error bertuliskan `“File ekstensi iz1 tidak boleh diubah permissionnya.”`
