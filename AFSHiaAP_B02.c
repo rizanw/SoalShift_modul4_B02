@@ -22,6 +22,7 @@
 #include <pwd.h>
 #include <grp.h>
 #include <string.h>
+#include <libgen.h>
 #include <time.h>
 #include <pthread.h>
 #include  <sys/types.h>
@@ -457,6 +458,8 @@ static int xmp_write(const char *path, const char *buf, size_t size,
 	char fpath[LenPath], enpath[LenPath];
 
 	strcpy(enpath, path);
+	char *pname = basename(enpath);
+
 	Encrypt(enpath);
 	sprintf(fpath,"%s%s",dirpath,enpath);
 
@@ -467,7 +470,11 @@ static int xmp_write(const char *path, const char *buf, size_t size,
 	sprintf(BakPath, "%s/%s", dirpath, BakFolder);
 	mkdir(BakPath, 0750);
 
-
+	// time_t rawtime;
+	// struct tm *fntm = localtime(&rawtime);
+	// char dst[LenPath];
+	// sprintf(dst, "%s_%04d-%02d-%02d_%02d:%02d:%02d.ekstensi", pname,  fntm->tm_year + 1900, fntm->tm_mon, fntm->tm_mday, fntm->tm_hour, fntm->tm_min, fntm->tm_sec);
+	// printf("%s\n", dst);
 
 	(void) fi;
 	fd = open(fpath, O_WRONLY);
@@ -535,8 +542,8 @@ static int xmp_create(const char* path, mode_t mode, struct fuse_file_info* fi) 
 		// strcpy(soalsc, fpath);
 		// strcpy(soaldt, tmp);
 		cpFile(fpath, tmp);
-		remove(fpath);
 		chmod(tmp, 0640);
+		remove(fpath);
 		// soal4v = 1;
 		// char *argv[] = {"cp", fpath, tmp, NULL};
 		// execv("/bin/cp", argv);
