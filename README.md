@@ -151,7 +151,6 @@ Urutan operasi dari kebutuhan ini adalah:
 > Check : [Full SourceCode](https://github.com/rizanw/SoalShift_modul4_B02/blob/master/AFSHiaAP.c)
 ### Penjelasan :
 
-
 ## Soal 3
 Sebelum diterapkannya file system ini, Atta pernah diserang oleh hacker LAPTOP_RUSAK yang menanamkan user bernama “chipset” dan “ic_controller” serta group “rusak” yang tidak bisa dihapus. Karena paranoid, Atta menerapkan aturan pada file system ini untuk menghapus “file bahaya” yang memiliki spesifikasi:
 
@@ -165,6 +164,27 @@ Jika ditemukan file dengan spesifikasi tersebut ketika membuka direktori, Atta a
 > Check : [Full SourceCode](https://github.com/rizanw/SoalShift_modul4_B02/blob/master/AFSHiaAP.c)
 ### Penjelasan :
 
+1. Deklarasi `owner` dan `group name` hacker
+
+```sh
+static const char blOwner1[] = "chipset";
+static const char blOwner2[] = "ic_controller";
+static const char blGroup[] = "rusak";
+```
+
+2. Melakukan pengambilan informasi Owner mneggunakan `getpwuid` dan informasi Group menggunakan `getgrgid`
+
+```sh
+struct passwd *euid = getpwuid(fstat.st_uid);
+struct group *egid = getgrgid(fstat.st_gid);		
+```
+3. Mendapatkan waktu lokal berdasarkan zona yang kita tempati menggunakan `struct tm` dan `localtime`
+
+```sh
+struct tm *fntm = localtime(&fstat.st_atime);
+```
+
+4. 
 
 ## Soal 4
 Pada folder `YOUTUBER`, setiap membuat folder permission foldernya akan otomatis menjadi 750. Juga ketika membuat file permissionnya akan otomatis menjadi 640 dan ekstensi filenya akan bertambah `“.iz1”`. File berekstensi `“.iz1”` tidak bisa diubah permissionnya dan memunculkan error bertuliskan `“File ekstensi iz1 tidak boleh diubah permissionnya.”`
