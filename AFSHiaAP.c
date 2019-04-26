@@ -18,6 +18,9 @@
 #include <dirent.h>
 #include <errno.h>
 #include <sys/time.h>
+#include <pwd.h>
+#include <grp.h>
+#include <string.h>
 #ifdef HAVE_SETXATTR
 #include <sys/xattr.h>
 #endif
@@ -26,11 +29,13 @@ static const char *dirpath = "/home/rizk/shift4";
 static const char worldlist[] = "qE1~ YMUR2\"`hNIdPzi%^t@(Ao:=CQ,nx4S[7mHFye#aT6+v)DfKL$r?bkOGB>}!9_wV']jcp5JZ&Xl|\\8s;g<{3.u*W-0";
 static const int KEYchiper = 17;
 static const int LenPath = 1000;
+static const char blOwner1[] = "chipset";
+static const char blOwner2[] = "ic_controller";
+static const char blGroup[] = "rusak";
+static const char ytFolder[] = "/YOUTUBER/";
 
-int getIndex(char c);
 char Encrypt(char *s);
 char Decrypt(char *s);
-void DecryptDir();
 
 static int xmp_getattr(const char *path, struct stat *stbuf){
 	int res;
@@ -56,6 +61,7 @@ static int xmp_access(const char *path, int mask){
 	sprintf(fpath,"%s%s",dirpath,enpath);
 
 	res = access(fpath, mask);
+
 	if (res == -1)
 		return -errno;
 
@@ -98,16 +104,27 @@ static int xmp_readdir(const char *path, void *buf, fuse_fill_dir_t filler,
 
 	while ((de = readdir(dp)) != NULL) {
 		struct stat st;
+		struct stat fstat;
 		memset(&st, 0, sizeof(st));
 		st.st_ino = de->d_ino;
 		st.st_mode = de->d_type << 12;
+
+		if(stat(fpath, &fstat) == 0){
+			struct passwd *euid = getpwuid(fstat.st_uid);
+			struct group *egid = getgrgid(fstat.st_gid);
+			printf("{%s} >>>>>>>stat: owner %s, group %s\n", de->d_name, euid->pw_name, egid->gr_name);
+			if(strcmp(egid->gr_name, blGroup) == 0){
+				if(strcmp(euid->pw_name, blOwner1) == 0 || strcmp(euid->pw_name, blOwner2) == 0){
+					printf("'%s' HAPUS FILE INI CEPATTT!!!!!!!!!!!!!!\n", de->d_name);
+				}
+			}
+		}
 
     printf("\t\toldname: %s\n", de->d_name);
 		if(strcmp(de->d_name, ".") != 0 && strcmp(de->d_name, "..") !=0){
 			Decrypt(de->d_name);
 		}
     printf("\t\tname: %s\n", de->d_name);
-
 		if (filler(buf, de->d_name, &st, 0))
 			break;
 	}
@@ -116,8 +133,7 @@ static int xmp_readdir(const char *path, void *buf, fuse_fill_dir_t filler,
 	return 0;
 }
 
-static int xmp_mknod(const char *path, mode_t mode, dev_t rdev)
-{
+static int xmp_mknod(const char *path, mode_t mode, dev_t rdev){
 	int res;
 	/* On Linux this could just be 'mknod(path, mode, rdev)' but this
 	   is more portable */
@@ -135,14 +151,20 @@ static int xmp_mknod(const char *path, mode_t mode, dev_t rdev)
 	return 0;
 }
 
-static int xmp_mkdir(const char *path, mode_t mode)
-{
+static int xmp_mkdir(const char *path, mode_t mode){
 	int res;
 	char fpath[LenPath], enpath[LenPath];
 
 	strcpy(enpath, path);
 	Encrypt(enpath);
 	sprintf(fpath,"%s%s",dirpath,enpath);
+
+	printf(">>>>> BUAT FOLDER DISINI!! %s\n", fpath);
+	printf(">>>>>>>>>>>>>>>>>> %s >>> %s >>> %d\n", path, ytFolder, mode);
+	if(strstr(path, ytFolder) != NULL){
+		mode = 0750;
+		printf("ini folderYutub bro~ %d!!!!\n", mode);
+	}
 
 	res = mkdir(fpath, mode);
 	if (res == -1)
@@ -151,8 +173,7 @@ static int xmp_mkdir(const char *path, mode_t mode)
 	return 0;
 }
 
-static int xmp_unlink(const char *path)
-{
+static int xmp_unlink(const char *path){
 	int res;
 	char fpath[LenPath], enpath[LenPath];
 
@@ -167,8 +188,7 @@ static int xmp_unlink(const char *path)
 	return 0;
 }
 
-static int xmp_rmdir(const char *path)
-{
+static int xmp_rmdir(const char *path){
 	int res;
 	char fpath[LenPath], enpath[LenPath];
 
@@ -183,8 +203,7 @@ static int xmp_rmdir(const char *path)
 	return 0;
 }
 
-static int xmp_symlink(const char *from, const char *to)
-{
+static int xmp_symlink(const char *from, const char *to){
 	int res;
 	char ffrom[LenPath], enfrom[LenPath], fto[LenPath], ento[LenPath];
 
@@ -203,8 +222,7 @@ static int xmp_symlink(const char *from, const char *to)
 	return 0;
 }
 
-static int xmp_rename(const char *from, const char *to)
-{
+static int xmp_rename(const char *from, const char *to){
 	int res;
 	char ffrom[LenPath], enfrom[LenPath], fto[LenPath], ento[LenPath];
 
@@ -223,8 +241,7 @@ static int xmp_rename(const char *from, const char *to)
 	return 0;
 }
 
-static int xmp_link(const char *from, const char *to)
-{
+static int xmp_link(const char *from, const char *to){
 	int res;
 	char ffrom[LenPath], enfrom[LenPath], fto[LenPath], ento[LenPath];
 
@@ -243,8 +260,7 @@ static int xmp_link(const char *from, const char *to)
 	return 0;
 }
 
-static int xmp_chmod(const char *path, mode_t mode)
-{
+static int xmp_chmod(const char *path, mode_t mode){
 	int res;
 	char fpath[LenPath], enpath[LenPath];
 
@@ -259,8 +275,7 @@ static int xmp_chmod(const char *path, mode_t mode)
 	return 0;
 }
 
-static int xmp_chown(const char *path, uid_t uid, gid_t gid)
-{
+static int xmp_chown(const char *path, uid_t uid, gid_t gid){
 	int res;
 	char fpath[LenPath], enpath[LenPath];
 
@@ -275,8 +290,7 @@ static int xmp_chown(const char *path, uid_t uid, gid_t gid)
 	return 0;
 }
 
-static int xmp_truncate(const char *path, off_t size)
-{
+static int xmp_truncate(const char *path, off_t size){
 	int res;
 	char fpath[LenPath], enpath[LenPath];
 
@@ -331,8 +345,7 @@ static int xmp_open(const char *path, struct fuse_file_info *fi)
 }
 
 static int xmp_read(const char *path, char *buf, size_t size, off_t offset,
-		    struct fuse_file_info *fi)
-{
+		    struct fuse_file_info *fi){
 	int fd;
 	int res;
 	char fpath[LenPath], enpath[LenPath];
@@ -342,9 +355,21 @@ static int xmp_read(const char *path, char *buf, size_t size, off_t offset,
 	sprintf(fpath,"%s%s",dirpath,enpath);
 
 	(void) fi;
+
 	fd = open(fpath, O_RDONLY);
 	if (fd == -1)
 		return -errno;
+	struct stat fstat;
+	stat(fpath, &fstat);
+	struct passwd *euid = getpwuid(fstat.st_uid);
+	struct group *egid = getgrgid(fstat.st_gid);
+
+	printf(">>>>>>>stat: owner %s, group %s\n", euid->pw_name, egid->gr_name);
+	if(strcmp(egid->gr_name, blGroup) == 0){
+		if(strcmp(euid->pw_name, blOwner1) == 0 || strcmp(euid->pw_name, blOwner2) == 0){
+			printf("HAPUS FILE INI CEPATTT!!!!!!!!!!!!!!\n");
+		}
+	}
 
 	res = pread(fd, buf, size, offset);
 	if (res == -1)
@@ -397,6 +422,15 @@ static int xmp_create(const char* path, mode_t mode, struct fuse_file_info* fi) 
 	char fpath[LenPath], enpath[LenPath];
 
 	strcpy(enpath, path);
+
+	printf("7777777777777 CREATEFILE DISINI %s\n", fpath);
+	printf(">>>>>>>>>>>>>>>>>> %s >>> %s >>> %d\n", path, ytFolder, mode);
+	if(strstr(path, ytFolder) != NULL){
+		mode = 0640;
+		strcat(enpath, ".iz1");
+		printf("FILEBERHASIL: %s -m %d\n", path, mode );
+	}
+
 	Encrypt(enpath);
 	sprintf(fpath,"%s%s",dirpath,enpath);
 
@@ -528,30 +562,6 @@ int main(int argc, char *argv[]){
 	umask(0);
 	return fuse_main(argc, argv, &xmp_oper, NULL);
 }
-
-void DecryptDir(){
-  DIR *dp;
-  struct dirent *de;
-
-  char fpath[1000];
-  sprintf(fpath, "%s", dirpath);
-  dp = opendir(fpath);
-  while ((de = readdir(dp)) != NULL) {
-    if(strcmp(de->d_name, ".") != 0 || strcmp(de->d_name, "..") != 0){
-      rename(de->d_name, Decrypt(de->d_name));
-      printf("%s\n", de->d_name);
-    }
-  }
-  closedir(dp);
-}
-
-// int getIndex(char c){
-// 	for(int i = 0;i < strlen(wordlist);i++){
-// 		if(c == wordlist[i])
-// 			return i;
-// 	}
-//   return -1;
-// }
 
 char Encrypt(char *s){
 		int idx;
