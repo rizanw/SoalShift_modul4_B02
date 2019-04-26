@@ -107,6 +107,21 @@ if(ptr){
 				}
  ```
  
+ 5. Untuk membandingkan dua buah string pada `de->d_name` menggunakan `strcmp` dan me-`decrypt` nama file
+ 
+ ```sh
+     printf("\t\toldname: %s\n", de->d_name);
+		if(strcmp(de->d_name, ".") != 0 && strcmp(de->d_name, "..") !=0){
+			Decrypt(de->d_name);
+		}
+```
+
+6. Me-`encrypt` nama dari setiap path dengan menambahkan dalah setiap fungsi
+```sh
+strcpy(enpath, path);
+Encrypt(enpath);
+sprintf(fpath,"%s%s",dirpath,enpath);
+```
 ## Soal 2
 Semua file video yang tersimpan secara terpecah-pecah (splitted) harus secara otomatis tergabung (joined) dan diletakkan dalam folder “Videos”
 
