@@ -16,8 +16,97 @@ Perhatian: Karakter `‘/’ `adalah karakter ilegal dalam penamaan file atau fo
 ### Jawaban:
 > Check : [Full SourceCode](https://github.com/rizanw/SoalShift_modul4_B02/blob/master/AFSHiaAP.c)
 ### Penjelasan :
+1. Untuk mendeklarasikan custom alphabet 
 
+```sh 
+static const char worldlist[] = "qE1~ YMUR2\"`hNIdPzi%^t@(Ao:=CQ,nx4S[7mHFye#aT6+v)DfKL$r?bkOGB>}!9_wV']jcp5JZ&Xl|\\8s;g<{3.u*W-0";
+```
 
+2. Karena yang diminta di dalam soal key nya adalah `17`
+
+```sh
+static const int KEYchiper = 17;
+```
+
+3. Membuat fungsi untuk `decrypt Caesar Cipher`
+
+```sh
+char Decrypt(char *s){
+		int idx;
+		char *ptr;
+
+		for (int i = 0; i < strlen(s); i++){
+				if (s[i] == '/')
+					continue;
+
+				ptr = strchr(worldlist, s[i]);
+				if(ptr){
+						idx = ptr - worldlist - KEYchiper;
+						if (idx < 0){
+								idx = idx + strlen(worldlist);
+						}
+						s[i] = worldlist[idx];
+				}
+		}
+		return *s;
+}
+```
+##### Note :
+
+Permintaan soal jika bertemu huruf `/` maka diabaikan 
+
+```sh
+if (s[i] == '/')
+		continue;
+```
+
+Ketika fungsi `strchr` ini dipanggil, maka fungsi ini akan mengambil nilai yang disimpan oleh variabel cari (s[i]) dan menjadikannya sebagai acuan data yang ingin dicari. Kemudian, fungsi ini akan memulai mencari dan memeriksa apakah karakter tersebut terdapat dalam variabel kalimat. 
+
+```sh
+ptr = strchr(worldlist, s[i]);
+```
+
+Untuk mendapatkan `index ke-` dari suatu huruf
+
+```sh
+if(ptr){
+						idx = ptr - worldlist - KEYchiper;
+						if (idx < 0){
+								idx = idx + strlen(worldlist);
+						}
+						s[i] = worldlist[idx];
+				}
+```
+4. Membuat fungsi `encrypt Caesar Cipher`
+
+```sh
+char Encrypt(char *s){
+		int idx;
+		char *ptr;
+
+		for (int i = 0; i < strlen(s); i++){
+				if (s[i] == '/')
+					continue;
+
+				ptr = strchr(worldlist, s[i]);
+				if(ptr){
+						idx = ptr - worldlist;
+						s[i] = worldlist[(idx + KEYchiper) % strlen(worldlist)];
+				}
+		}
+		return *s;
+}
+```
+#### Note
+Mencari data yang akan dimasukkan kedalam array berdasarkan `index`,`key`,dan `panjang data`
+
+```sh
+if(ptr){
+						idx = ptr - worldlist;
+						s[i] = worldlist[(idx + KEYchiper) % strlen(worldlist)];
+				}
+ ```
+ 
 ## Soal 2
 Semua file video yang tersimpan secara terpecah-pecah (splitted) harus secara otomatis tergabung (joined) dan diletakkan dalam folder “Videos”
 
