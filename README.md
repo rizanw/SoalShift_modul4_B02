@@ -151,6 +151,169 @@ Urutan operasi dari kebutuhan ini adalah:
 > Check : [Full SourceCode](https://github.com/rizanw/SoalShift_modul4_B02/blob/master/AFSHiaAP.c)
 ### Penjelasan :
 
+1. Membuat fungsi `thread`
+
+```sh
+pthread_t tid1, tid2;
+pthread_create(&tid1, NULL, soal4, NULL);
+pthread_create(&tid2, NULL, vidJoiner, NULL);
+umask(0);
+```
+
+2. Me-`encrypt` nama file `vid` dan menghapus direktori yang kosong menggunakan fungsi `rmdir`
+
+```sh
+char vidDir[256];
+char vidFolder[] = "Videos";
+Encrypt(vidFolder);
+sprintf(vidDir, "%s/%s", dirpath, vidFolder);
+rmDir(vidDir);
+```
+
+3. Membuat fungsi untuk `menyatukan` serpihan `video`
+
+```sh
+void *vidJoiner(void *argv){
+		char vidFolder[] = "Videos";
+		Encrypt(vidFolder);
+    char dst[256];
+		sprintf(dst, "%s/%s", dirpath, vidFolder);
+
+    mkdir(dst, 0750);
+
+		struct dirent *de;
+    DIR *dp = opendir(dirpath);
+    if (dp != NULL){
+        struct vidFinfo vids[100];
+        int counter = 0;
+
+        while ((de = readdir(dp)) != NULL){
+            if (strcmp(de->d_name, ".") == 0 || strcmp(de->d_name, "..") == 0)
+                continue;
+
+						char viName[256];
+						strcpy(viName, de->d_name);
+						Decrypt(viName);
+
+						char *viTok;
+            viTok = strtok(viName, ".");
+
+            char Tok1[256];
+            sprintf(Tok1, "%s", viTok);
+
+            while (viTok != NULL){
+                if (strcmp(viTok, "mkv") == 0 || strcmp(viTok, "mp4") == 0 || strcmp(viTok, "flv") == 0){
+                    char fname[LenPath];
+                    sprintf(fname, "%s.%s", Tok1, viTok);
+
+                    int x = 0;
+                    for (int i = 0; i < 10; i++){
+                        if (strcmp(vids[i].filename, fname) == 0){
+                            vids[i].max++;
+                            x = 1;
+                            break;
+                        }
+                    }
+
+										if (x == 0){
+                        sprintf(vids[counter].filename, "%s", fname);
+                        vids[counter].max = 0;
+                        counter++;
+                    }
+
+                    break;
+                }else
+									viTok = strtok(NULL, ".");
+            }
+        }
+        closedir(dp);
+
+        for (int i = 0; i < 10; i++){
+            if (strcmp(vids[i].filename, "") == 0){
+                continue;
+            }else{
+								char *vidName = vids[i].filename;
+								Encrypt(vidName);
+
+								char fname[LenPath];
+								sprintf(fname, "%s/%s/%s", dirpath, vidFolder, vidName);
+
+                FILE *nvid = fopen(fname, "w");
+                if (nvid != NULL){
+                    for (int j = 0; j <= vids[i].max; j++){
+
+                        char benc[LenPath];
+                        sprintf(benc, "%s.%03d", vids[i].filename, j);
+												Encrypt(benc);
+
+                        char scfile[LenPath];
+                        sprintf(scfile, "%s/%s", dirpath, benc);
+
+                        FILE *rvid = fopen(scfile, "r");
+                        if (rvid != NULL){
+                            do{
+                                int c = fgetc(rvid);
+                                if (feof(rvid))
+                                    break;
+                                fputc(c, nvid);
+                            } while (1);
+                            fclose(rvid);
+                        }else
+                            break;
+                    }
+                    fclose(nvid);
+                }
+            }
+        }
+    }
+    return 0;
+}
+```
+##### Note :
+
+Membagi string menjadi beberapa bagian yang dibatasi oleh karakter yang telah ditentukan menggunakan fungsi `strtok`
+
+```sh
+char *viTok;
+            viTok = strtok(viName, ".");
+
+            char Tok1[256];
+            sprintf(Tok1, "%s", viTok);
+```
+
+Mencari ekstensi video : `mkv`, `mp4`, `flv`
+
+```sh
+ if (strcmp(viTok, "mkv") == 0 || strcmp(viTok, "mp4") == 0 || strcmp(viTok, "flv") == 0)
+ ```
+ 
+- Membuka file menggunakan `fopen`
+ 
+- Membaca karakter pada file `rvid` menggunakan fungsi `fgetc`
+
+- Menampilkan isi file `rvid` menggunakan `feof`
+
+- Menyimpan karakter pada file `fputc` menggunakan `fputc`
+
+- Menutup file yang sudah tidak diproses menggunakan `fclose`
+
+```sh
+
+                        FILE *rvid = fopen(scfile, "r");
+                        if (rvid != NULL){
+                            do{
+                                int c = fgetc(rvid);
+                                if (feof(rvid))
+                                    break;
+                                fputc(c, nvid);
+                            } while (1);
+                            fclose(rvid);
+                        }else
+                            break;
+                    }
+                    fclose(nvid);
+```
+ 
 ## Soal 3
 Sebelum diterapkannya file system ini, Atta pernah diserang oleh hacker LAPTOP_RUSAK yang menanamkan user bernama “chipset” dan “ic_controller” serta group “rusak” yang tidak bisa dihapus. Karena paranoid, Atta menerapkan aturan pada file system ini untuk menghapus “file bahaya” yang memiliki spesifikasi:
 
