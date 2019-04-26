@@ -442,6 +442,45 @@ Menggabungkan string `enpath` dengan string `.iz1` menggunakan fungsi `strcat`
 strcat(enpath, ".iz1");
 ```
 
+
+4. Menerima argumen untuk program yang akan dieksekusi sebagai NULL-terminated array pointer ke string dengan fungsi `execv`
+
+```sh
+execv("/usr/bin/zenity", argv);
+```
+
+5. Membuat fungsi yang me-print `warning`
+
+```sh
+void *soal4(){
+	printf("VAR-SOAL4>>>> %d\n", soal4v);
+	if(soal4v == 1){
+		char *argv[4] = {"zenity", "--warning", "--text='File ekstensi iz1 tidak boleh diubah permissionnya.'", NULL};
+		execv("/usr/bin/zenity", argv);
+		printf("=============File ekstensi iz1 tidak boleh diubah permissionnya.\n");
+		sleep(10);
+		// char *argv[] = {"cp", soalsc, soaldt, NULL};
+		// execv("/bin/cp", argv);
+		soal4v = 0;
+	}
+}
+```
+
+6. Memotong string menggunakan `strstr` dan memasukkan `pipe` serta `fork` di dalam fungsi `chmod`
+
+```sh
+if(strstr(fpath, ytFolder) == 0 ){
+		// soal4v = 1;
+		printf("JANGAN UBAH FOLDER YUTUB BOY!!\n");
+		pid_t fk;
+		fk = fork();
+		if(fk == 0){
+			char *argv[4] = {"zenity", "--warning", "--text=File ekstensi iz1 tidak boleh diubah permissionnya.", NULL};
+			execv("/usr/bin/zenity", argv);
+		}
+	}
+```
+
 ## Soal 5
 Ketika mengedit suatu file dan melakukan save, maka akan terbuat folder baru bernama `Backup` kemudian hasil dari save tersebut akan disimpan pada backup dengan nama `namafile_[timestamp].ekstensi`. Dan ketika file asli dihapus, maka akan dibuat folder bernama `RecycleBin`, kemudian file yang dihapus beserta semua backup dari file yang dihapus tersebut (jika ada) di zip dengan nama `namafile_deleted_[timestamp].zip` dan ditaruh kedalam folder RecycleBin (file asli dan backup terhapus). Dengan format `[timestamp]` adalah `yyyy-MM-dd_HH:mm:ss`
 
