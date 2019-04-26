@@ -488,3 +488,13 @@ Ketika mengedit suatu file dan melakukan save, maka akan terbuat folder baru ber
 > Check : [Full SourceCode](https://github.com/rizanw/SoalShift_modul4_B02/blob/master/AFSHiaAP.c)
 ### Penjelasan :
 
+1. Jika ada indikasi pengeditan dan save pada suatu file, maka dibuat file `backup`
+
+```sh
+printf("ADA FILE TEREDIT!!?\n" );
+	char BakFolder[] = "Backup";
+	Encrypt(BakFolder);
+	char BakPath[LenPath];
+	sprintf(BakPath, "%s/%s", dirpath, BakFolder);
+	mkdir(BakPath, 0750);
+```
