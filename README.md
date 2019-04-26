@@ -245,6 +245,39 @@ Pada folder `YOUTUBER`, setiap membuat folder permission foldernya akan otomatis
 > Check : [Full SourceCode](https://github.com/rizanw/SoalShift_modul4_B02/blob/master/AFSHiaAP.c)
 ### Penjelasan :
 
+1. Mencari string `ytFolder` dalam string `path` menggunakan `strstr`
+
+```sh
+strstr(path, ytFolder) != NULL
+```
+
+2. Merubah permission menjadi `750`
+
+```sh
+if(strstr(path, ytFolder) != NULL){
+		mode = 0750;
+		printf("ini folderYutub bro~ %d!!!!\n", mode);
+	}
+```
+
+3. Merubah permission file menjadi `640`
+
+```sh
+if(strstr(path, ytFolder) != NULL){
+		mode = 0640;
+		printf("FILEBERHASIL: %s -m %d\n", path, mode );
+		// sprintf(enpath, "%s.iz1", path);
+		strcat(enpath, ".iz1");
+	}
+```
+
+##### Note :
+
+Menggabungkan string `enpath` dengan string `.izi` menggunakan fungsi `strcat`
+
+```sh
+strcat(enpath, ".iz1");
+```
 
 ## Soal 5
 Ketika mengedit suatu file dan melakukan save, maka akan terbuat folder baru bernama `Backup` kemudian hasil dari save tersebut akan disimpan pada backup dengan nama `namafile_[timestamp].ekstensi`. Dan ketika file asli dihapus, maka akan dibuat folder bernama `RecycleBin`, kemudian file yang dihapus beserta semua backup dari file yang dihapus tersebut (jika ada) di zip dengan nama `namafile_deleted_[timestamp].zip` dan ditaruh kedalam folder RecycleBin (file asli dan backup terhapus). Dengan format `[timestamp]` adalah `yyyy-MM-dd_HH:mm:ss`
