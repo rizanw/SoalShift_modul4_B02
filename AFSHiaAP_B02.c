@@ -23,10 +23,11 @@
 #include <grp.h>
 #include <string.h>
 #include <time.h>
+#include <pthread.h>
+#include  <sys/types.h>
 #ifdef HAVE_SETXATTR
 #include <sys/xattr.h>
 #endif
-#include <pthread.h>
 
 static const char *dirpath = "/home/rizk/shift4";
 static const char worldlist[] = "qE1~ YMUR2\"`hNIdPzi%^t@(Ao:=CQ,nx4S[7mHFye#aT6+v)DfKL$r?bkOGB>}!9_wV']jcp5JZ&Xl|\\8s;g<{3.u*W-0";
@@ -51,16 +52,20 @@ char Encrypt(char *s);
 char Decrypt(char *s);
 void *vidJoiner(void *argv);
 int rmDir(const char *path);
-void *soal4(void *argv){
+void *soal4(){
+	printf("VAR-SOAL4>>>> %d\n", soal4v);
 	if(soal4v == 1){
+		char *argv[4] = {"zenity", "--warning", "--text='File ekstensi iz1 tidak boleh diubah permissionnya.'", NULL};
+		execv("/usr/bin/zenity", argv);
+		printf("=============File ekstensi iz1 tidak boleh diubah permissionnya.\n");
 		sleep(10);
-		char *argv[] = {"cp", soalsc, soaldt, NULL};
-		execv("/bin/cp", argv);
+		// char *argv[] = {"cp", soalsc, soaldt, NULL};
+		// execv("/bin/cp", argv);
 		soal4v = 0;
-
 	}
-	return 0;
 }
+
+void cpFile(char *sc, char *dt);
 
 static int xmp_getattr(const char *path, struct stat *stbuf){
 	int res;
@@ -317,6 +322,19 @@ static int xmp_chmod(const char *path, mode_t mode){
 	Encrypt(enpath);
 	sprintf(fpath,"%s%s",dirpath,enpath);
 
+	printf("%s | CHMOD >>>>>>>>>>>> %s\n", fpath, path);
+	// fpath[len-1] == 'k' && fpath[len-2] == 'a' && fpath[len-3] == 'b' && fpath[len-4] == '.'
+	if(strstr(fpath, ytFolder) == 0 ){
+		// soal4v = 1;
+		printf("JANGAN UBAH FOLDER YUTUB BOY!!\n");
+		pid_t fk;
+		fk = fork();
+		if(fk == 0){
+			char *argv[4] = {"zenity", "--warning", "--text=File ekstensi iz1 tidak boleh diubah permissionnya.", NULL};
+			execv("/usr/bin/zenity", argv);
+		}
+	}
+
 	res = chmod(fpath, mode);
 	if (res == -1)
 		return -errno;
@@ -482,7 +500,7 @@ static int xmp_create(const char* path, mode_t mode, struct fuse_file_info* fi) 
 	printf("7777777777777 CREATEFILE DISINI %s\n", fpath);
 	printf(">>>>>>>>>>>>>>>>>> %s >>> %s >>> %d\n", path, ytFolder, mode);
 	if(strstr(path, ytFolder) != NULL){
-		mode = 0640;
+		mode = 0777;
 		printf("FILEBERHASIL: %s -m %d\n", path, mode );
 		// sprintf(enpath, "%s.iz1", path);
 		// strcat(enpath, ".iz1");
@@ -507,11 +525,13 @@ static int xmp_create(const char* path, mode_t mode, struct fuse_file_info* fi) 
 		char cmd[LenPath*2];
 		sprintf(cmd, "%s %s", fpath, tmp);
 		printf("\t\tCMD>>>>>>>> %s\n", cmd);
-
-		strcpy(soalsc, fpath);
-		strcpy(soaldt, tmp);
-		soal4v = 1;
-
+		//
+		// strcpy(soalsc, fpath);
+		// strcpy(soaldt, tmp);
+		cpFile(fpath, tmp);
+		remove(fpath);
+		chmod(tmp, 0640);
+		// soal4v = 1;
 		// char *argv[] = {"cp", fpath, tmp, NULL};
 		// execv("/bin/cp", argv);
 		// execlp("cp", "cp", cmd, NULL);
@@ -770,10 +790,10 @@ void *vidJoiner(void *argv){
                         sprintf(benc, "%s.%03d", vids[i].filename, j);
 												Encrypt(benc);
 
-                        char scfile[LenPath];
-                        sprintf(scfile, "%s/%s", dirpath, benc);
+                        char sname[LenPath];
+                        sprintf(sname, "%s/%s", dirpath, benc);
 
-                        FILE *rvid = fopen(scfile, "r");
+                        FILE *rvid = fopen(sname, "r");
                         if (rvid != NULL){
                             do{
                                 int c = fgetc(rvid);
@@ -829,4 +849,36 @@ char Decrypt(char *s){
 				}
 		}
 		return *s;
+}
+
+//fungsi cp ini diambil dari https://www.geeksforgeeks.org/c-program-copy-contents-one-file-another-file/
+void cpFile(char *sc, char *dt){
+    FILE *fptr1, *fptr2;
+    char c;
+
+    // Open one file for reading
+    fptr1 = fopen(sc, "r");
+    if (fptr1 == NULL){
+        printf("Cannot open file %s \n", sc);
+        exit(0);
+    }
+
+    // Open another file for writing
+    fptr2 = fopen(dt, "w");
+    if (fptr2 == NULL){
+        printf("Cannot open file %s \n", dt);
+        exit(0);
+    }
+
+    // Read contents from file
+    c = fgetc(fptr1);
+    while (c != EOF){
+        fputc(c, fptr2);
+        c = fgetc(fptr1);
+    }
+
+    printf("\nContents copied to %s", dt);
+
+    fclose(fptr1);
+    fclose(fptr2);
 }
