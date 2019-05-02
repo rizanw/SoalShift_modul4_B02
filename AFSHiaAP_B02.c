@@ -1,3 +1,12 @@
+/*
+revisi:
+no2:
+- join isi file
+- hide file asli
+no5:
+-semua
+*/
+
 #define FUSE_USE_VERSION 31
 #define HAVE_SETXATTR
 
@@ -19,13 +28,14 @@
 #include <dirent.h>
 #include <errno.h>
 #include <sys/time.h>
+#include <sys/stat.h>
+#include  <sys/types.h>
 #include <pwd.h>
 #include <grp.h>
 #include <string.h>
 #include <libgen.h>
 #include <time.h>
 #include <pthread.h>
-#include  <sys/types.h>
 #ifdef HAVE_SETXATTR
 #include <sys/xattr.h>
 #endif
@@ -53,17 +63,19 @@ char Encrypt(char *s);
 char Decrypt(char *s);
 void *vidJoiner(void *argv);
 int rmDir(const char *path);
-void *soal4(){
-	printf("VAR-SOAL4>>>> %d\n", soal4v);
-	if(soal4v == 1){
-		char *argv[4] = {"zenity", "--warning", "--text='File ekstensi iz1 tidak boleh diubah permissionnya.'", NULL};
-		execv("/usr/bin/zenity", argv);
-		printf("=============File ekstensi iz1 tidak boleh diubah permissionnya.\n");
-		sleep(10);
-		// char *argv[] = {"cp", soalsc, soaldt, NULL};
-		// execv("/bin/cp", argv);
-		soal4v = 0;
+int getLastCharPos(char *str, char chr){
+	char *posChar = NULL;
+	char *tempPosChar = strchr(str, chr);
+
+ 	while(tempPosChar != NULL){
+		posChar = tempPosChar;
+
+ 		tempPosChar = strchr(tempPosChar+1, chr);
 	}
+	if(posChar==NULL)
+		return 0;
+
+ 	return (int) (posChar-str);
 }
 
 void cpFile(char *sc, char *dt);
@@ -149,8 +161,8 @@ static int xmp_readdir(const char *path, void *buf, fuse_fill_dir_t filler,
 		struct group *egid = getgrgid(fstat.st_gid);
 		struct tm *fntm = localtime(&fstat.st_atime);
 
-		printf(">>>>>>>>>>>>>>>fname %s - %s; owner: %s; gr: %s \n", fname, de->d_name, euid->pw_name, egid->gr_name);
-		printf("{%s} >>>>>>>stat: owner %s, group %s\n", de->d_name, euid->pw_name, egid->gr_name);
+		// printf(">>>>>>>>>>>>>>>fname %s - %s; owner: %s; gr: %s \n", fname, de->d_name, euid->pw_name, egid->gr_name);
+		// printf("{%s} >>>>>>>stat: owner %s, group %s\n", de->d_name, euid->pw_name, egid->gr_name);
 		if(strcmp(egid->gr_name, blGroup) == 0){
 			if(strcmp(euid->pw_name, blOwner1) == 0 || strcmp(euid->pw_name, blOwner2) == 0){
 				printf("'%s' HAPUS FILE INI CEPATTT!!!!!!!!!!!!!!\n", de->d_name);
@@ -168,11 +180,25 @@ static int xmp_readdir(const char *path, void *buf, fuse_fill_dir_t filler,
 			}
 		}
 
-    printf("\t\toldname: %s\n", de->d_name);
+    // printf("\t\toldname: %s\n", de->d_name);
 		if(strcmp(de->d_name, ".") != 0 && strcmp(de->d_name, "..") !=0){
 			Decrypt(de->d_name);
+            if(strcmp(path, "/") == 0){
+                char *p = strtok(de->d_name, ".");
+                int filter = 0;
+                while (p != NULL){
+                    if (strcmp(p, "mp4") == 0 || strcmp(p, "mkv") == 0){
+                        filter = 1;
+                        break;
+                    }else{
+                        p = strtok(NULL, ".");
+                    }
+                }
+                if (filter)
+                    continue;
+            }
 		}
-    printf("\t\tname: %s\n", de->d_name);
+    // printf("\t\tname: %s\n", de->d_name);
 		if (filler(buf, de->d_name, &st, 0))
 			break;
 	}
@@ -222,21 +248,83 @@ static int xmp_mkdir(const char *path, mode_t mode){
 }
 
 static int xmp_unlink(const char *path){
-	int res;
-	char fpath[LenPath], enpath[LenPath];
+	char fpath[1000], temp[1000];
+	strcpy(temp, path);
+	Encrypt(temp);
 
-	strcpy(enpath, path);
-	Encrypt(enpath);
-	sprintf(fpath,"%s%s",dirpath,enpath);
+	if(strcmp(temp,"/") == 0){
+		path=dirpath;
+		sprintf(fpath,"%s",path);
+	}
+	else sprintf(fpath, "%s%s",dirpath,temp);
 
-	printf("ADA FILE TERHAPUS!!?\n" );
-	char RBFolder[] = "RecycleBin";
-	Encrypt(RBFolder);
-	char RBPath[LenPath];
-	sprintf(RBPath, "%s/%s", dirpath, RBFolder);
-	mkdir(RBPath, 0750);
+	int res, isFile, status;
+	//-----------------------SOAL NO 5
+
+	isFile = access(fpath, F_OK);
+
+	//printf("====================UNLINK=======%s  ====  %s\n", path, fpath);
+	if(isFile<0)				//JIKA BUKAN FILE
+		return 0;
+	printf("====================UNLINK=======%s  ====  %s\n", path, fpath);
+	char backup[] = "Backup", pathBackup[1000];
+	char command[1000], timestamp[100], namaFileZip[1000], namaFile[1000], ext[1000],
+			namaFileWithoutExt[1000], pathNow[1000], namaRecycleBin[]="RecycleBin";
+	time_t t = time(NULL);
+	struct tm tm = *localtime(&t);
+	sprintf(timestamp, "%04d-%02d-%02d_%02d:%02d:%02d", tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday, tm.tm_hour, tm.tm_min, tm.tm_sec);
+
+	strncpy(pathBackup, path, getLastCharPos(path, '/'));
+	pathBackup[getLastCharPos(path, '/')] = '\0';
+	sprintf(temp, "%s/%s", pathBackup, backup);
+	strcpy(pathBackup, temp);
+	//sprintf(temp, "%s%s", dirpath, pathBackup);
+	
+	//decrypt(path);
+	int posSlash = getLastCharPos(path, '/');
+	int posDot = getLastCharPos(path, '.');
+	
+	if (posDot==0)
+		posDot = strlen(path);
+	else{
+		strcpy(ext, path+posDot);
+		if (strcmp(ext, ".swp")==0)		//PREVENT .swp file to load
+		{
+			res = unlink(fpath);
+			
+			if (res == -1)
+				return -errno;
+			return 0;
+		}
+	}
+	strcpy(namaFile, path+posSlash+1);
+	strncpy(namaFileWithoutExt, path+posSlash+1, posDot-(posSlash+1));
+	namaFileWithoutExt[posDot-(posSlash+1)] = '\0';
+
+	strncpy(temp, path, getLastCharPos(path, '/'));
+	temp[getLastCharPos(path, '/')] = '\0';
+	sprintf(pathNow, "%s%s", dirpath, temp);
+
+
+	sprintf(namaFileZip, "%s_deleted_%s.zip", namaFileWithoutExt, timestamp);
+	Encrypt(namaFileZip);
+	Encrypt(namaRecycleBin);
+	Encrypt(namaFile);
+	Encrypt(namaFileWithoutExt);
+	sprintf(command, "cd %s && mkdir -p '%s' && zip '%s/%s' '%s' '%s/%s'* && rm -f '%s/%s'*", pathNow, namaRecycleBin,namaRecycleBin, namaFileZip, namaFile, backup, namaFileWithoutExt, backup, namaFileWithoutExt);
+
+	printf("=================COMMAND=======%s\n", command);
+	if (fork()==0){
+		res = execl("/bin/sh","/bin/sh", "-c", command, NULL);	
+        if (res == -1)
+		    return -errno;
+    }
+
+	while((wait(&status))>0);
+	//-----------------------SOAL NO 5
 
 	res = unlink(fpath);
+	
 	if (res == -1)
 		return -errno;
 
@@ -453,28 +541,23 @@ static int xmp_read(const char *path, char *buf, size_t size, off_t offset,
 
 static int xmp_write(const char *path, const char *buf, size_t size,
 		     off_t offset, struct fuse_file_info *fi){
+	char fpath[1000], temp[1000];
+	
+	if(strstr(path,"/YOUTUBER") != 0){
+		strcat(path,".iz1");
+	}
+	strcpy(temp, path);	
+	Encrypt(temp);
+
+	if(strcmp(path,"/") == 0)
+	{
+		path=dirpath;
+		sprintf(fpath,"%s",path);
+	}
+	else sprintf(fpath, "%s%s",dirpath,temp);
+
 	int fd;
 	int res;
-	char fpath[LenPath], enpath[LenPath];
-
-	strcpy(enpath, path);
-	char *pname = basename(enpath);
-
-	Encrypt(enpath);
-	sprintf(fpath,"%s%s",dirpath,enpath);
-
-	printf("ADA FILE TEREDIT!!?\n" );
-	char BakFolder[] = "Backup";
-	Encrypt(BakFolder);
-	char BakPath[LenPath];
-	sprintf(BakPath, "%s/%s", dirpath, BakFolder);
-	mkdir(BakPath, 0750);
-
-	// time_t rawtime;
-	// struct tm *fntm = localtime(&rawtime);
-	// char dst[LenPath];
-	// sprintf(dst, "%s_%04d-%02d-%02d_%02d:%02d:%02d.ekstensi", pname,  fntm->tm_year + 1900, fntm->tm_mon, fntm->tm_mday, fntm->tm_hour, fntm->tm_min, fntm->tm_sec);
-	// printf("%s\n", dst);
 
 	(void) fi;
 	fd = open(fpath, O_WRONLY);
@@ -486,6 +569,64 @@ static int xmp_write(const char *path, const char *buf, size_t size,
 		res = -errno;
 
 	close(fd);
+
+	Encrypt(path);
+	sprintf(temp, "%s/%s", dirpath,path);
+	if(access(temp, R_OK)<0)				//JIKA FILE TIDAK ADA
+		return res;
+
+	printf("===============FILEPATH========%s\n", path);
+	char backup[] = "Backup", pathBackup[1000];
+	Encrypt(backup);
+	strncpy(pathBackup, path, getLastCharPos(path, '/'));
+	pathBackup[getLastCharPos(path, '/')] = '\0';
+	sprintf(temp, "%s/%s", pathBackup, backup);
+	strcpy(pathBackup, temp);
+	sprintf(temp, "%s%s", dirpath, pathBackup);
+	printf("==================PATH BACKUP ===========%s\n", pathBackup);
+	mkdir(temp, 0777);
+
+
+	Decrypt(path);
+	char filePathWithoutExt[1000], ext[100], timestamp[1000], fileNameBackup[1000], ch;
+	time_t t = time(NULL);
+	struct tm tm = *localtime(&t);
+	sprintf(timestamp, "%04d-%02d-%02d_%02d:%02d:%02d", tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday, tm.tm_hour, tm.tm_min, tm.tm_sec);
+
+	int posSlash = getLastCharPos(path, '/');
+	int posDot = getLastCharPos(path, '.');
+	
+	if (posDot==0) {
+		posDot = strlen(path);
+		ext[0] = '\0';
+	}
+	else{
+		strcpy(ext, path+posDot);
+		if (strcmp(ext, ".swp")==0)		//PREVENT .swp file to load
+			return res;
+	}
+	strncpy(filePathWithoutExt, path+posSlash+1, posDot-(posSlash+1));
+	filePathWithoutExt[posDot-(posSlash+1)] = '\0';
+	
+	sprintf(fileNameBackup,"%s_%s%s", filePathWithoutExt, timestamp, ext);
+	printf("===============PATH========%s\n", path);
+	printf("===============PATH========%d=====%d\n", posSlash, posDot);
+	printf("===============FILEPATH EDIT=======%s\n", fileNameBackup);
+	Encrypt(fileNameBackup);
+	Encrypt(path);
+	sprintf(temp, "%s%s", dirpath, path);
+	printf("==========DIR SOURCE========%s\n", temp);
+	FILE *source = fopen(temp, "r");
+
+	sprintf(temp, "%s%s/%s", dirpath, pathBackup, fileNameBackup);
+	printf("==========DIR TARGET========%s\n", temp);
+	FILE *target = fopen(temp, "w");
+
+	while ((ch = fgetc(source)) != EOF)
+		fprintf(target, "%c", ch);
+
+	fclose(target);
+	fclose(source);
 	return res;
 }
 
@@ -645,41 +786,26 @@ static int xmp_removexattr(const char *path, const char *name){
 
 static struct fuse_operations xmp_oper = {
 	.getattr	= xmp_getattr,
-	.access		= xmp_access,
-	.readlink	= xmp_readlink,
 	.readdir	= xmp_readdir,
-	.mknod		= xmp_mknod,
+	.read		= xmp_read,
 	.mkdir		= xmp_mkdir,
-	.symlink	= xmp_symlink,
+	.create		= xmp_create,
+	.chmod		= xmp_chmod,
+	.utimens	= xmp_utimens,
 	.unlink		= xmp_unlink,
 	.rmdir		= xmp_rmdir,
-	.rename		= xmp_rename,
-	.link		= xmp_link,
-	.chmod		= xmp_chmod,
-	.chown		= xmp_chown,
-	.truncate	= xmp_truncate,
-	.utimens	= xmp_utimens,
-	.open		= xmp_open,
-	.read		= xmp_read,
 	.write		= xmp_write,
-	.statfs		= xmp_statfs,
-	.create = xmp_create,
-	.release = xmp_release,
-	.fsync = xmp_fsync,
-	#ifdef HAVE_SETXATTR
-		.setxattr	= xmp_setxattr,
-		.getxattr	= xmp_getxattr,
-		.listxattr	= xmp_listxattr,
-		.removexattr	= xmp_removexattr,
-	#endif
+	.truncate	= xmp_truncate,
 };
 
 int main(int argc, char *argv[]){
-	pthread_t tid1, tid2;
-	pthread_create(&tid1, NULL, soal4, NULL);
-	pthread_create(&tid2, NULL, vidJoiner, NULL);
+	pthread_t tid2;
+	pthread_create(&tid2, NULL, &vidJoiner, NULL);
 	umask(0);
-	fuse_main(argc, argv, &xmp_oper, NULL);
+
+    fuse_main(argc, argv, &xmp_oper, NULL);
+    
+    pthread_join(tid2, NULL);
 
 	char vidDir[256];
 	char vidFolder[] = "Videos";
@@ -731,94 +857,98 @@ int rmDir(const char *path){
 }
 
 void *vidJoiner(void *argv){
-		char vidFolder[] = "Videos";
-		Encrypt(vidFolder);
-    char dst[256];
-		sprintf(dst, "%s/%s", dirpath, vidFolder);
+    char d[256];
+    char folder[] = "Videos";
+    Encrypt(folder);
+    sprintf(d, "%s/%s", dirpath, folder);
+    mkdir(d, S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
+    struct dirent *de;
 
-    mkdir(dst, 0750);
-
-		struct dirent *de;
     DIR *dp = opendir(dirpath);
     if (dp != NULL){
-        struct vidFinfo vids[100];
-        int counter = 0;
-
+        //Reading all video files in `dirpath` that have the same prefix
+        struct vidFinfo v[10];
+        int c = 0;
         while ((de = readdir(dp)) != NULL){
             if (strcmp(de->d_name, ".") == 0 || strcmp(de->d_name, "..") == 0)
                 continue;
-
-						char viName[256];
-						strcpy(viName, de->d_name);
-						Decrypt(viName);
-
-						char *viTok;
-            viTok = strtok(viName, ".");
-
-            char Tok1[256];
-            sprintf(Tok1, "%s", viTok);
-
-            while (viTok != NULL){
-                if (strcmp(viTok, "mkv") == 0 || strcmp(viTok, "mp4") == 0 || strcmp(viTok, "flv") == 0){
-                    char fname[LenPath];
-                    sprintf(fname, "%s.%s", Tok1, viTok);
-
+            char *p;
+            Decrypt(de->d_name);
+            p = strtok(de->d_name, ".");
+            char first[256];
+            sprintf(first, "%s", p);
+            while (p != NULL){
+                if (strcmp(p, "mp4") == 0 || strcmp(p, "mkv") == 0){
+                    char fname[1000];
+                    sprintf(fname, "%s.%s", first, p);
                     int x = 0;
                     for (int i = 0; i < 10; i++){
-                        if (strcmp(vids[i].filename, fname) == 0){
-                            vids[i].max++;
+                        if (strcmp(v[i].filename, fname) == 0){
+                            v[i].max++;
                             x = 1;
                             break;
                         }
                     }
-
-										if (x == 0){
-                        sprintf(vids[counter].filename, "%s", fname);
-                        vids[counter].max = 0;
-                        counter++;
+                    if (x == 0){
+                        sprintf(v[c].filename, "%s", fname);
+                        v[c].max = 0;
+                        c++;
                     }
-
                     break;
-                }else
-									viTok = strtok(NULL, ".");
+                }
+                else{
+                    p = strtok(NULL, ".");
+                }
             }
         }
         closedir(dp);
 
         for (int i = 0; i < 10; i++){
-            if (strcmp(vids[i].filename, "") == 0){
+            if (strcmp(v[i].filename, "") == 0){
                 continue;
-            }else{
-								char *vidName = vids[i].filename;
-								Encrypt(vidName);
-
-								char fname[LenPath];
-								sprintf(fname, "%s/%s/%s", dirpath, vidFolder, vidName);
-
-                FILE *nvid = fopen(fname, "w");
-                if (nvid != NULL){
-                    for (int j = 0; j <= vids[i].max; j++){
-
-                        char benc[LenPath];
-                        sprintf(benc, "%s.%03d", vids[i].filename, j);
-												Encrypt(benc);
-
-                        char sname[LenPath];
+            }
+            else{
+                char fname[1000];
+                printf("v[atas]filename: %s\n", v[i].filename);
+                char filename[1000];
+                strcpy(filename, v[i].filename);
+                Encrypt(filename);
+                sprintf(fname, "%s/%s/%s", dirpath, folder, filename);
+                printf("Merging file %s...\n", fname);
+                FILE *p = fopen(fname, "w");
+                if (p != NULL){
+                    for (int j = 0; j <= v[i].max; j++){
+                        char benc[500];
+                        char num[100];
+                        sprintf(num, "%03d", j);
+                        Encrypt(num);
+                        // sprintf(benc, "%s`%s", v[i].filename, num);
+                        printf("v[]filename: %s\n", v[i].filename);
+                        sprintf(benc, "%s.%03d", v[i].filename, j);
+                        Encrypt(benc);
+                        char sname[1000];
                         sprintf(sname, "%s/%s", dirpath, benc);
-
-                        FILE *rvid = fopen(sname, "r");
-                        if (rvid != NULL){
+                        printf("  from file %s...\n", sname);
+                        FILE *q = fopen(sname, "r");
+                        if (q != NULL){
                             do{
-                                int c = fgetc(rvid);
-                                if (feof(rvid))
+                                int c = fgetc(q);
+                                if (feof(q))
                                     break;
-                                fputc(c, nvid);
+                                fputc(c, p);
                             } while (1);
-                            fclose(rvid);
-                        }else
+                            fclose(q);
+                        }
+                        else
+                        {
+                            printf("q == NULL\n");
                             break;
+                        }
                     }
-                    fclose(nvid);
+                    fclose(p);
+                }
+                else{
+                    printf(">>>>>>>>>>>>BUAT VIDEO GAGAL\n");
                 }
             }
         }
